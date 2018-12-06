@@ -22,5 +22,3 @@ public:
 	float   age();        // sec
 	ofColor color;
 };
-
-
