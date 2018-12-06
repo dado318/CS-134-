@@ -1,5 +1,5 @@
 # CS-134-Game Development
 3D Arcade Game Project
   
-  (c) Davor Koret
-  (c) Galen Rivoire
+  (c) Davor Koret & Galen Rivoire 
+      Fall 2018
