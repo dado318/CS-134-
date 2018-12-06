@@ -78,8 +78,11 @@ int ParticleSystem::removeNear(const ofVec3f & point, float dist) { return 0; }
 //
 void ParticleSystem::draw() {
 	for (int i = 0; i < particles.size(); i++) {
-		particles[i].draw();
-	}
+        if (i > 1) {
+            particles[i].position = particles[0].position;
+        }
+        particles[i].draw();
+    }
 }
 
 
@@ -142,3 +145,13 @@ void CyclicForce::updateForce(Particle * particle) {
 	particle->forces += dir.getNormalized() * magnitude;
 }
 
+// Thrust Force added
+ThrustForce::ThrustForce(const ofVec3f &vec) {
+    thrust = vec;
+}
+
+void ThrustForce::updateForce(Particle * particle) {
+    particle->forces.x += thrust.x;
+    particle->forces.y += thrust.y;
+    particle->forces.z += thrust.z;
+}
