@@ -70,3 +70,12 @@ public:
 	void updateForce(Particle *);
 };
 
+// Thrust Force added
+class ThrustForce: public ParticleForce {
+    ofVec3f thrust;
+public:
+    void set(const ofVec3f &t) { thrust = t; }
+    ThrustForce(const ofVec3f & thurst);
+    void updateForce(Particle *);
+};
+
