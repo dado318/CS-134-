@@ -3,6 +3,10 @@
 
 #include "ParticleSystem.h"
 
+// Davor Koret and Galen Rivoire
+// CS 134-01
+// Final Game Project
+
 void ParticleSystem::add(const Particle &p) {
 	particles.push_back(p);
 }
@@ -78,11 +82,8 @@ int ParticleSystem::removeNear(const ofVec3f & point, float dist) { return 0; }
 //
 void ParticleSystem::draw() {
 	for (int i = 0; i < particles.size(); i++) {
-        if (i > 1) {
-            particles[i].position = particles[0].position;
-        }
-        particles[i].draw();
-    }
+		particles[i].draw();
+	}
 }
 
 
@@ -145,13 +146,12 @@ void CyclicForce::updateForce(Particle * particle) {
 	particle->forces += dir.getNormalized() * magnitude;
 }
 
-// Thrust Force added
-ThrustForce::ThrustForce(const ofVec3f &vec) {
-    thrust = vec;
+ThrusterForce::ThrusterForce(ofVec3f force) {
+	this->f = force;
 }
 
-void ThrustForce::updateForce(Particle * particle) {
-    particle->forces.x += thrust.x;
-    particle->forces.y += thrust.y;
-    particle->forces.z += thrust.z;
+void ThrusterForce::updateForce(Particle *particle) {
+	particle->forces.x += f.x;
+	particle->forces.y += f.y;
+	particle->forces.z += f.z;
 }

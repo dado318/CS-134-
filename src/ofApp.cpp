@@ -6,6 +6,9 @@
 //   Please make sure to you the required data files installed in your $OF/data directory.
 //
 //                                             (c) Kevin M. Smith  - 2018
+// Davor Koret and Galen Rivoire
+// CS 134-01
+// Final Game Project
 
 
 #include "ofApp.h"
@@ -64,17 +67,68 @@ void ofApp::setup(){
 		cout << "Error: Can't load model" << "geo/lander.obj" << endl;
 		ofExit(0);
 	}
+	if (terrain.loadModel("geo/terrain_1.obj")) {
+		terrain.setScaleNormalization(false);
+		terrain.setScale(1, 1, 1);
+		terrain.setRotation(0, 0, 1, 0, 0);
+		terrain.setPosition(0, 0, 0);
+		terrainLoaded = true;
+	}
+	else {
+		cout << "Can't load model: " << "geo/terrain_1.obj" << endl;
+		ofExit(0);
+	}
 
+	// Added: set up basic drifting lem movement
+	//
+	lem = ParticleEmitter(new ParticleSystem);
+	lem.setPosition(lander.getPosition());//
+	lem.setLifespan(1000000);
+	lem.setVelocity(ofVec3f(0, 0, 0));
+	lem.sys->addForce(new TurbulenceForce(ofVec3f(-.1, -.3, -.1), ofVec3f(.2, .2, .1)));
+	//lem.start();
+
+	// Added: set up exhaust emitter
+	//
+	exhaust = ParticleEmitter(new ParticleSystem);
+	exhaust.setPosition(lander.getPosition());
+	exhaust.sys->addForce(new ImpulseRadialForce(200));
+	exhaust.setEmitterType(DiscEmitter);
+	exhaust.setGroupSize(100);
+	exhaust.start();
 }
 
 
 void ofApp::update() {
+	// Added: Updates lem, lander, and exhaust position based on lem's first launched particle
+	if (lem.sys->particles.size() > 0) {
+		lem.stop();
+	}
+	if (lem.sys->particles.size() < 1) {
+		lem.start();
+	}
+	for (int i = 0; i < lem.sys->particles.size(); i++) {
+		lander.setPosition(lem.sys->particles[i].position.x, lem.sys->particles[i].position.y, lem.sys->particles[i].position.z);
+		lem.setPosition(lander.getPosition());
+		exhaust.setPosition(lander.getPosition());
+	}
+	lem.update();
+	lander.update();
 
+	// Added: Updates exhaust emitter position
+	if (activateExhaust) {
+		exhaust.setLifespan(5000);
+		exhaust.setRate(10);
+		exhaust.setVelocity(ofVec3f(0, -20, 0));
+	}
+	else {
+		exhaust.setRate(0);
+	}
+	exhaust.update();
 }
 
 //--------------------------------------------------------------
 void ofApp::draw() {
-
 	//	ofBackgroundGradient(ofColor(20), ofColor(0));   // pick your own backgroujnd
 	//	ofBackground(ofColor::black);
 	if (bBackgroundLoaded) {
@@ -95,12 +149,17 @@ void ofApp::draw() {
 		if (bLanderLoaded) {
 			lander.drawWireframe();
 		}
+		if (terrainLoaded) {
+			terrain.drawWireframe();
+		}
 	}
 	else {
 		ofEnableLighting();              // shaded mode
 		if (bLanderLoaded) {
 			lander.drawFaces();
-
+		}
+		if (terrainLoaded) {
+			terrain.drawFaces();
 		}
 	}
 
@@ -115,6 +174,7 @@ void ofApp::draw() {
 	ofSetColor(ofColor::white);
 	ofDrawBitmapString(str, ofGetWindowWidth() - 170, 15);
 
+	exhaust.draw();
 }
 
 
@@ -198,12 +258,40 @@ void ofApp::keyPressed(int key) {
 	case OF_KEY_DEL:
 		break;
 	case OF_KEY_UP:
+		activateExhaust = true;
+		if (!bCtrlKeyDown) {
+			lem.sys->addForce(new ThrusterForce(ofVec3f(0, 1, 0)));
+		}
+		else {
+			lem.sys->addForce(new ThrusterForce(ofVec3f(0, 0, 1)));
+		}
 		break;
 	case OF_KEY_DOWN:
+		activateExhaust = true;
+		if (!bCtrlKeyDown) {
+			lem.sys->addForce(new ThrusterForce(ofVec3f(0, -1, 0)));
+		}
+		else {
+			lem.sys->addForce(new ThrusterForce(ofVec3f(0, 0, -1)));
+		}
 		break;
 	case OF_KEY_LEFT:
+		activateExhaust = true;
+		if (!bCtrlKeyDown) {
+			lem.sys->addForce(new ThrusterForce(ofVec3f(-1, 0, 0)));
+		}
+		else {
+			lem.sys->addForce(new ThrusterForce(ofVec3f(0, 0, -1)));
+		}
 		break;
 	case OF_KEY_RIGHT:
+		activateExhaust = true;
+		if (!bCtrlKeyDown) {
+			lem.sys->addForce(new ThrusterForce(ofVec3f(1, 0, 0)));
+		}
+		else {
+			lem.sys->addForce(new ThrusterForce(ofVec3f(0, 0, 1)));
+		}
 		break;
 	default:
 		break;
@@ -231,6 +319,22 @@ void ofApp::keyReleased(int key) {
 		bCtrlKeyDown = false;
 		break;
 	case OF_KEY_SHIFT:
+		break;
+	case OF_KEY_UP:
+		activateExhaust = false;
+		lem.sys->addForce(new ThrusterForce(ofVec3f(0, -.1, 0)));
+		break;
+	case OF_KEY_DOWN:
+		activateExhaust = false;
+		lem.sys->addForce(new ThrusterForce(ofVec3f(0, .1, 0)));
+		break;
+	case OF_KEY_RIGHT:
+		activateExhaust = false;
+		lem.sys->addForce(new ThrusterForce(ofVec3f(-.1, 0, 0)));
+		break;
+	case OF_KEY_LEFT:
+		activateExhaust = false;
+		lem.sys->addForce(new ThrusterForce(ofVec3f(.1, 0, 0)));
 		break;
 	default:
 		break;

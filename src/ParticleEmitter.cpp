@@ -3,6 +3,10 @@
 
 #include "ParticleEmitter.h"
 
+// Davor Koret and Galen Rivoire
+// CS 134-01
+// Final Game Project
+
 ParticleEmitter::ParticleEmitter() {
 	sys = new ParticleSystem();
 	createdSys = true;
@@ -59,6 +63,11 @@ void ParticleEmitter::draw() {
 		case SphereEmitter:
 		case RadialEmitter:
 			ofDrawSphere(position, radius/10);  // just draw a small sphere as a placeholder
+			break;
+		// ADDED: DiscEmitter type
+		case DiscEmitter:
+			//ofDrawCircle(position, 100);
+			ofDrawSphere(position, radius / 10);
 			break;
 		default:
 			break;
@@ -129,11 +138,19 @@ void ParticleEmitter::spawn(float time) {
 	case SphereEmitter:
 		break;
 	case DirectionalEmitter:
-        ofVec3f dir = ofVec3f(ofRandom(-sys->particles[0].forces.x,0 ), ofRandom(-sys->particles[0].forces.y,0), ofRandom(-sys->particles[0].forces.z,0));
 		particle.velocity = velocity;
 		particle.position.set(position);
 		break;
-	
+	// Added: DiscEmitter
+	//
+	case DiscEmitter:
+	  {
+		ofVec3f dir = ofVec3f(ofRandom(-1, 1), ofRandom(-10, 10), ofRandom(-1, 1));
+		float speed = velocity.length();
+		particle.velocity = dir.getNormalized() * speed;
+		particle.position.set(position);
+	  }
+	  break;
 	}
 
 	// other particle attributes

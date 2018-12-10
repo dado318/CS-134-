@@ -61,3 +61,5 @@ void Particle::integrate() {
 float Particle::age() {
 	return (ofGetElapsedTimeMillis() - birthtime)/1000.0;
 }
+
+
