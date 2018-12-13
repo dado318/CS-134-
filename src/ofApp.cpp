@@ -24,6 +24,11 @@ void ofApp::setup(){
 	bAltKeyDown = false;
 	bCtrlKeyDown = false;
 	bLanderLoaded = false;
+    
+    // altitude gui setup
+    //
+    gui.setup();
+    gui.add(labelAltitude.setup("Altitude", "0"));
 
 	cam.setDistance(10);
 	cam.setNearClip(.1);
@@ -43,9 +48,15 @@ void ofApp::setup(){
 	ofEnableSmoothing();
 	ofEnableDepthTest();
 
+    // load BG music
+    //
+    bkgroundSound.load("sounds/background_music.mp3");
+    bkgroundSound.setLoop(true);
+    bkgroundSound.play();
+    
 	// load BG image
 	//
-	bBackgroundLoaded = backgroundImage.load("images/starfield-plain.jpg");
+	bBackgroundLoaded = backgroundImage.load("images/universe.jpg");
 
 
 	// setup rudimentary lighting 
@@ -72,7 +83,7 @@ void ofApp::setup(){
 	if (terrain.loadModel("geo/terrain_1.obj")) {
 		terrain.setScaleNormalization(false);
 		terrain.setScale(1, 1, 1);
-		terrain.setRotation(0, 0, 1, 0, 0);
+		terrain.setRotation(0, -180, 1, 0, 0);
 		terrain.setPosition(0, -2, 0);
 		terrainLoaded = true;
 	}
@@ -102,12 +113,47 @@ void ofApp::setup(){
 	exhaust.setEmitterType(DiscEmitter);
 	exhaust.setGroupSize(100);
 	exhaust.start();
+    
+    // audio effect
+    //
+    exhaustAudio.load("sounds/exhaust_sound.mp3");
 
-	minDist = FLT_MAX;
+    // extra cameras
+    // @ Galen Rivoire
+    // trackingCam
+    //
+    trackingCam.setNearClip(.1);
+    trackingCam.setFov(65.5);
+    trackingCam.setPosition(10, -10, 20);
+    trackingCam.lookAt(lander.getPosition());
+
+    // landerFront
+    //
+    landerFront.setNearClip(2);
+    landerFront.setFov(65.5);
+    landerFront.setPosition(glm::vec3(lander.getPosition().x, lander.getPosition().y, lander.getPosition().z));
+    landerFront.lookAt(glm::vec3(landerFront.getPosition().x, landerFront.getPosition().y, landerFront.getPosition().z - 10));
+
+    // landerDown
+    //
+    landerDown.setNearClip(.1);
+    landerDown.setFov(65.5);
+    landerDown.setPosition(glm::vec3(lander.getPosition().x, lander.getPosition().y - .75, lander.getPosition().z));
+    landerDown.lookAt(glm::vec3(landerDown.getPosition().x, landerDown.getPosition().y - 1, landerDown.getPosition().z));
+
+    // topCam
+    //
+    topCam.setNearClip(.1);
+    topCam.setFov(65.5);
+    topCam.setPosition(0, 10, 0);
+    topCam.lookAt(lander.getPosition());
 }
 
-Box ofApp::meshBounds(const ofMesh &mesh)
-{
+//--------------------------------------------------------------
+// octree
+// @ Davor Koret
+//
+Box ofApp::meshBounds(const ofMesh &mesh) {
 	int n = mesh.getNumVertices();
 	ofVec3f v = mesh.getVertex(0);
 	ofVec3f max = v;
@@ -127,39 +173,43 @@ Box ofApp::meshBounds(const ofMesh &mesh)
 	return Box(Vector3(min.x, min.y, min.z), Vector3(max.x, max.y, max.z));
 }
 
-bool ofApp::collisionDetect()
-{
-	Vector3 c = landerBox.center();
+// check collision
+//
+bool ofApp::collisionDetect() {
 	ofPoint posLander = lander.getPosition();
-	ofPoint posTerrain = terrain.getPosition();
-	Vector3 o = Vector3(c.x() + posLander.x, c.y() - landerBox.height() / 2 * landerScale + posLander.y, c.z() + posLander.z);
-	Ray ray(o, Vector3(0.f, 1.f, 0.f));
+	Vector3 o = Vector3(posLander.x, posLander.y + landerBox.height() / 2.f, posLander.z);
+	Ray ray(o, Vector3(0.f, -1.f, 0.f));
+	ofVec3f rayDir(0.f, -1.f, 0.f);
 
 	TreeNode hitNode;
-	
+	ofPoint posTerrain = terrain.getPosition();
 	if (octree.intersect(ray, octree.root, hitNode)) {
 		int count = hitNode.points.size();
+		float widthX = landerBox.widthX() * landerScale;
+		float widthZ = landerBox.widthZ() * landerScale;
 		for (int i = 0; i < count; i++) {
-			ofVec3f vert = meshTerrain.getVertex(hitNode.points[i]);
-			vert += posTerrain;
-			float distance = sqrtf((vert.x - o.x()) * (vert.x - o.x()) + (vert.y - o.y()) * (vert.y - o.y()) + (vert.z - o.z()) * (vert.z - o.z()));
-//			if (minDist > distance) {
-//				minDist = distance;
-//			}
-			if (distance < COLLISION_DISTANCE) {
-				return true;
-			}
-		}
-	}
-//	cout << "Min Distance:" << minDist << endl;
+			ofVec3f vert = meshTerrain.getVertex(hitNode.points[i]) + posTerrain;
+			if (vert.x >= o.x() - widthX / 2.f && vert.x <= o.x() + widthX / 2.f && vert.z >= o.z() - widthZ / 2.f && vert.z <= o.z() + widthZ / 2.f) {
+				ofVec3f dir = vert - posLander;
+				if (o.y() - vert.y <= 0.f) {
+                    altitude = 0.f;
+					return true;
+				}
+                else {
+                    altitude = o.y() - vert.y;
+                }
+            }
+        }
 	return false;
+    }
 }
 
+//--------------------------------------------------------------
 void ofApp::update() {
-	// Added: Updates lem, lander, and exhaust position based on lem's first launched particle
 	if (collisionDetect()) {
 		return;
 	}
+	// Added: Updates lem, lander, and exhaust position based on lem's first launched particle
 	if (lem.sys->particles.size() > 0) {
 		lem.stop();
 	}
@@ -179,11 +229,23 @@ void ofApp::update() {
 		exhaust.setLifespan(5000);
 		exhaust.setRate(10);
 		exhaust.setVelocity(ofVec3f(0, -20, 0));
+        
+        exhaustAudio.play();
 	}
 	else {
 		exhaust.setRate(0);
 	}
 	exhaust.update();
+    
+    // Update Cameras
+    // @ Galen Rivoire
+    landerFront.setPosition(glm::vec3(lander.getPosition().x, lander.getPosition().y, lander.getPosition().z));
+    landerFront.lookAt(glm::vec3(landerFront.getPosition().x, landerFront.getPosition().y, landerFront.getPosition().z));
+    landerDown.setPosition(glm::vec3(lander.getPosition().x, lander.getPosition().y - .75, lander.getPosition().z));
+    landerDown.lookAt(glm::vec3(landerDown.getPosition().x, landerDown.getPosition().y - 1, landerDown.getPosition().z));
+    topCam.setPosition(glm::vec3(lander.getPosition().x, lander.getPosition().y + 10, lander.getPosition().z));
+    topCam.lookAt(lander.getPosition());
+    trackingCam.lookAt(lander.getPosition());
 }
 
 //--------------------------------------------------------------
@@ -226,17 +288,24 @@ void ofApp::draw() {
 	//ofSetColor(ofColor::white);
 	//octree.draw(numLevel, 0);
 	
+	drawAxis(lander.getPosition());
+	exhaust.draw();
+
 	ofPopMatrix();
 	theCam->end();
 
 	// draw screen data
 	//
+    labelAltitude = ofToString(altitude);
+    gui.draw();
+
 	string str;
 	str += "Frame Rate: " + std::to_string(ofGetFrameRate());
 	ofSetColor(ofColor::white);
 	ofDrawBitmapString(str, ofGetWindowWidth() - 170, 15);
-
-	exhaust.draw();
+    
+    str = "Altitude: " + ofToString(altitude);
+    ofDrawBitmapString(str, ofGetWindowWidth() - 170, 35);
 }
 
 
@@ -265,7 +334,7 @@ void ofApp::drawAxis(ofVec3f location) {
 	ofPopMatrix();
 }
 
-
+//--------------------------------------------------------------
 void ofApp::keyPressed(int key) {
 
 	switch (key) {
@@ -283,6 +352,8 @@ void ofApp::keyPressed(int key) {
 		break;
 	case 'P':
 	case 'p':
+        cam.setTarget(lander.getPosition());
+        cam.setDistance(10);
 		break;
 	case 'r':
 		cam.reset();
@@ -302,12 +373,21 @@ void ofApp::keyPressed(int key) {
 	case 'w':
 		toggleWireframeMode();
 		break;
-	case OF_KEY_F1:
-		theCam = &cam;
-		break;
-	case OF_KEY_F3:
-		theCam = &topCam;
-		break;
+    case OF_KEY_F1:
+        theCam = &cam;
+        break;
+    case OF_KEY_F2:
+        theCam = &landerFront;
+        break;
+    case OF_KEY_F3:
+        theCam = &landerDown;
+        break;
+    case OF_KEY_F4:
+        theCam = &topCam;
+        break;
+    case OF_KEY_F5:
+        theCam = &trackingCam;
+        break;
 	case OF_KEY_ALT:
 		cam.enableMouseInput();
 		bAltKeyDown = true;
@@ -360,15 +440,17 @@ void ofApp::keyPressed(int key) {
 	}
 }
 
+//--------------------------------------------------------------
 void ofApp::toggleWireframeMode() {
 	bWireframe = !bWireframe;
 }
 
-
+//--------------------------------------------------------------
 void ofApp::togglePointsDisplay() {
 	bDisplayPoints = !bDisplayPoints;
 }
 
+//--------------------------------------------------------------
 void ofApp::keyReleased(int key) {
 
 	switch (key) {
@@ -403,7 +485,6 @@ void ofApp::keyReleased(int key) {
 
 	}
 }
-
 
 //--------------------------------------------------------------
 void ofApp::mouseMoved(int x, int y ){

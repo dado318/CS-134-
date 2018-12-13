@@ -1,6 +1,6 @@
 //  Kevin M. Smith - Basic Octree Class - CS134/235 4/18/18
 //
-//  (c) Davor Koret - updated on November 17, 2018
+//  (c) Davor Koret - updated on December 13, 2018
 //
 
 

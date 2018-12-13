@@ -1,7 +1,3 @@
-//
-//  (c) Davor Koret - updated on November 17, 2018
-//
-
 #pragma once
 #include "ofMain.h"
 #include "box.h"

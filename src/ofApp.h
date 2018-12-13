@@ -10,6 +10,7 @@
 
 #include "ofMain.h"
 #include  "ofxAssimpModelLoader.h"
+#include "ofxGui.h"
 #include "ParticleSystem.h"
 #include "ParticleEmitter.h"
 #include "box.h"
@@ -22,8 +23,6 @@
 
 
 class ofApp : public ofBaseApp{
-
-	const float COLLISION_DISTANCE = 0.07f;
 	public:
 		void setup();
 		void update();
@@ -46,12 +45,9 @@ class ofApp : public ofBaseApp{
 		void toggleWireframeMode();
 		void togglePointsDisplay();
 
-		ofEasyCam cam;
 		ofxAssimpModelLoader lander;
 		ofLight light;
 		ofImage backgroundImage;
-		ofCamera *theCam = NULL;
-		ofCamera topCam;
 
 		bool bAltKeyDown;
 		bool bCtrlKeyDown;
@@ -60,24 +56,38 @@ class ofApp : public ofBaseApp{
 	
 		bool bBackgroundLoaded = false;
 		bool bLanderLoaded = false;
+        bool bBackgroundSound = false;
+        ofSoundPlayer bkgroundSound;
+        ofSoundPlayer exhaustAudio;
 	
 		// My added elements
 		ParticleEmitter lem;
 		ParticleEmitter exhaust;
 		bool activateExhaust;
+    
+        // gui
+        ofxPanel gui;
+        ofxLabel labelAltitude;
+        float altitude;
 
 		ofxAssimpModelLoader terrain;
 		bool terrainLoaded = false;
 
 		Octree octree;
 		int numLevel;
-
+    
 		Box landerBox; // lander's box
 		float landerScale;
 
 		ofMesh meshTerrain;
 		Box meshBounds(const ofMesh &mesh);
 		bool collisionDetect();
-
-		float minDist;
+    
+        // Camera Additions
+        ofCamera trackingCam;
+        ofCamera landerFront;
+        ofCamera landerDown;
+        ofEasyCam cam;
+        ofCamera *theCam = NULL;
+        ofCamera topCam;
 };

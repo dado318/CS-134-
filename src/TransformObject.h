@@ -8,10 +8,10 @@
 //
 class TransformObject {
 protected:
-	TransformObject();
-	ofVec3f position, scale;
-	float	rotation;
-	bool	bSelected;
+    TransformObject();
+    ofVec3f position, scale;
+    float    rotation;
+    bool    bSelected;
 public:
-	void setPosition(const ofVec3f &);
+    void setPosition(const ofVec3f &);
 };
