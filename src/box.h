@@ -47,6 +47,10 @@ public:
     Vector3 center() {
         return ((max() - min()) / 2 + min());
     }
+	float height()
+	{
+		return parameters[1].y() - parameters[0].y();
+	}
 };
 
 #endif // _BOX_H_

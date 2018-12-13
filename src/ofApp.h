@@ -12,6 +12,9 @@
 #include  "ofxAssimpModelLoader.h"
 #include "ParticleSystem.h"
 #include "ParticleEmitter.h"
+#include "box.h"
+#include "ray.h"
+#include "Octree.h"
 
 // Davor Koret and Galen Rivoire
 // CS 134-01
@@ -20,6 +23,7 @@
 
 class ofApp : public ofBaseApp{
 
+	const float COLLISION_DISTANCE = 0.07f;
 	public:
 		void setup();
 		void update();
@@ -64,4 +68,16 @@ class ofApp : public ofBaseApp{
 
 		ofxAssimpModelLoader terrain;
 		bool terrainLoaded = false;
+
+		Octree octree;
+		int numLevel;
+
+		Box landerBox; // lander's box
+		float landerScale;
+
+		ofMesh meshTerrain;
+		Box meshBounds(const ofMesh &mesh);
+		bool collisionDetect();
+
+		float minDist;
 };
